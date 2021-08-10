@@ -1,13 +1,15 @@
 # Adam's Security Checklist
 
-After spending some time breaking into other people's APIs, I decided to start a running checklist to provide a reference on easy ways to prevent your application from being hacked. I am by no means a smart hacker, so this should be the bare minimum you do when releasing an MVP (especially if you're planning on handling money or other sensitive data). I'll be updating this list as I go with everything I learn.
+Hackers love startups, because usually their systems aren't properly secured. After spending time building fintech MVPs, I decided to write down basic security considerations. Hopefully this can provide a reference on easy ways to prevent your application from being hacked. I am by no means a smart hacker, and these methods will not dissuade a motivated smart opponent. These will however make it more difficult for the majority of less intelligent fraudstrs. In my opinion, this should be the bare minimum you do when releasing an MVP (especially if you're planning on handling money or other sensitive data). I'll be updating this list as I go with everything I learn.
 
-These methods are not sufficient to prevent a motivated hacker from gaining access to your systems. They may however dissuade a group of less motivated hackers just looking for an easy way to steal money. “You don’t have to run faster than the bear to get away. You just have to run faster than the guy next to you.”
+**These methods are not sufficient to prevent a motivated hacker from gaining access to your systems.** “You don’t have to run faster than the bear to get away. You just have to run faster than the guy next to you.”
 
 ## Table of contents
 [APIs](#api)
+
 [Apps](#app)
-[ACH](#ach)
+
+[ACH & Money](#ach)
 
 <a name="api"/>
 
@@ -15,10 +17,10 @@ These methods are not sufficient to prevent a motivated hacker from gaining acce
 These are absolute basics you need to think about when building an API
 
 ### Client requests
-Never make sensitive requets (especially those involving secrets or API keys) from the client. Always go through the server and assume any API exposed to the client can be programatically accessed by anyone.
+Never make sensitive requets (especially those involving secrets or API keys) from the client. Always go through the server and assume any API exposed to the client can be programatically accessed by anyone. Don't make database changes directly from the client, have that go through an endpoint first. Make sure you log everything so you can detect suspicious activity.
 
 ### Authentication
-Use a third party authentication provider if possible. If you have to use your own authentication, use JWT tokens and use a popular reputable library to manage them. Choose a good secret to prevent [brute forcing](https://github.com/brendan-rius/c-jwt-cracker). 
+Use a third party authentication provider if possible. If you have to use your own authentication, use JWT tokens and use a popular reputable library to manage them. Choose a good secret to prevent [brute forcing](https://github.com/brendan-rius/c-jwt-cracker). If you use phone numbers, [check if the number is virtual](https://www.twilio.com/lookup). If you use emails, validate the email (it's not a disposable domain, it's deliverable, etc). 
 
 ### Authorization (IDOR issues)
 Ensure that an authenticated user only has access to their own resources. Using a UUID as an object identifier and hoping users won't be able to guess other users' resource names is not a valid method of preventing unauthorized access.
@@ -51,23 +53,26 @@ This cuts off one easy way for a user to figure out what your APIs are on apps. 
 You should probably obfuscate your production code as much as you can. There are various free tools that can help with this instantly ([javascript](https://obfuscator.io/), [swift](https://github.com/rockbruno/swiftshield), etc). This adds a little bit of hassle to anyone looking into your code, but not much.
 
 ### Making keys difficult to access
-Assume that any keys on the client will be discoverable. However, using a library like [this](https://github.com/orta/cocoapods-keys) for iOS or [this](https://github.com/nomtek/android-client-secrets) for Android can make it more difficult. You can use hidden keys to further obfuscate requests (for example, using one as a public key to encrypt request payloads). Again, this just makes things harder for a hacker to understand and there's no real way to do this with a web app. 
+Assume that any keys on the client will be discoverable. **Don't store keys that matter on the client** However, using a library like [this](https://github.com/orta/cocoapods-keys) for iOS or [this](https://github.com/nomtek/android-client-secrets) for Android can make it more difficult for a hacker to find a secret. You can use these hidden keys to further obfuscate requests (for example, using one as a public key to encrypt request payloads). Again, this just makes things harder for a hacker to understand and there's no real way to do this with a web app. 
 
 
 <a name="ach"/>
 
-## ACH
+## ACH & Money
 The ACH network is prone to fraud. Here are things to consider
 
 ### Stolen KYC info
-Many fraudulent users will submit stolen information for KYC, which will pass. That's why it's not enough just to rely on KYC to prevent fraud.  
+Many fraudulent users will submit stolen information for KYC, which will pass. That's why it's not enough just to rely on KYC to prevent fraud. You need to be checking 
 
 ### Check their balance
 It's a good idea to check the user's balance before initiating an ACH pull (with something like Plaid). This is a basic prevention against getting a NSF (insufficient funds) return code. You also might want to check transaction history to make sure the account is real and has been operating normally for some time.
 
-### Fraudulent 
+### Fraudulent returns
 Anyone can call their bank and claim an ACH pull was fraudulent. Collect as much information (application logs, user information, etc) as ammo to prove you were a legitimate transaction.
 
 ### Bait-and-switch
-A user can initiate an ACH request when they have money in their bank, and then withdraw the funds before the ACH request completes. If you give users access to their money before the ACH request completes and they spend that money, you run the risk of hitting an empty account.
+A user can initiate an ACH request when they have money in their bank, and then withdraw the funds before the ACH request completes. If you give users access to their money before the ACH request completes and they spend that money, you run the risk of hitting an empty account and being left with nothing.
+
+### Burner cards
+If you don't charge a card before providing a service, you run the risk that the card has an artificial limit (using a service like [Privacy](http://privacy.com/)). If you absolutely must charge later, you can check if a card is physical/virtual/prepaid and act accordingly. Most legitimate consumers will have a real physical card and you can probably get away with disallowing all virtual/prepaid cards if you're in a risky industry. 
 
